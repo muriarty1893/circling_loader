@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3D Loader</title>
+    <title>3D Loader White Theme</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@900&display=swap" rel="stylesheet">
@@ -11,7 +11,7 @@
         body {
             margin: 0;
             overflow: hidden;
-            background-color: #111;
+            background-color: #ffffff; /* Arkaplan Beyaz yapıldı */
         }
         #loader {
             position: fixed;
@@ -19,7 +19,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background-color: #111;
+            background-color: #ffffff; /* Loader Arkaplanı Beyaz yapıldı */
             z-index: 9999;
         }
         #loader-canvas {
@@ -29,7 +29,7 @@
         }
         #main-content {
             display: none;
-            color: white;
+            color: black; /* İçerik yazısı Siyah yapıldı */
             text-align: center;
             padding-top: 50vh;
         }
@@ -57,60 +57,80 @@
         scene.add(ambientLight);
 
         // --- Textures and Materials ---
-        function createTextTexture(text, fontSize, canvasHeight = 1024) {
+        
+        function createTextTexture(text, heightScale = 1.0) {
             const canvas = document.createElement('canvas');
             const context = canvas.getContext('2d');
-            // Use a very high resolution canvas for crisp text
-            canvas.width = 8192;
-            canvas.height = canvasHeight; // Use parameterized height
+            
+            canvas.width = 8192; 
+            canvas.height = 4096; 
 
-            // Transparent background
             context.clearRect(0, 0, canvas.width, canvas.height);
             
-            // Adjust font size based on the new dynamic canvas height
-            const adjustedFontSize = fontSize * (canvas.height / 512);
-            context.font = `900 ${adjustedFontSize}px 'Inter', sans-serif`;
-            context.fillStyle = 'white';
+            // 1. Hesaplama
+            const textToRender = text + " "; 
+
+            // 2. Referans ölçüm
+            let fontSize = 100;
+            context.font = `900 ${fontSize}px 'Inter', sans-serif`;
+            const metrics = context.measureText(textToRender);
+            const textWidth = metrics.width;
+            
+            // 3. Genişlik Oturtma
+            const scaleFactor = canvas.width / textWidth;
+            const finalFontSize = fontSize * scaleFactor;
+            
+            // 4. Çizim Ayarları
+            context.font = `900 ${finalFontSize}px 'Inter', sans-serif`;
+            
+            // --- RENK DEĞİŞİKLİĞİ BURADA YAPILDI ---
+            context.fillStyle = 'black'; // Yazı rengi Siyah yapıldı (Eskiden white idi)
+            
             context.textAlign = 'center';
             context.textBaseline = 'middle';
             
-            // Repeat text to fill the wider texture
-            const textMetrics = context.measureText(text + ' ');
-            const repeatCount = Math.ceil(canvas.width / textMetrics.width) * 2; // More repetitions
-            const fullText = (text + '         ').repeat(repeatCount);
-            context.fillText(fullText, canvas.width / 2, canvas.height / 2);
+            // --- YÜKSEKLİK AYARI (Esnetme İşlemi) ---
+            context.save(); 
+            
+            context.translate(canvas.width / 2, canvas.height / 2);
+            context.scale(1, heightScale);
+            context.fillText(textToRender, 0, 0);
+            
+            context.restore(); 
             
             const texture = new THREE.CanvasTexture(canvas);
-            texture.wrapS = THREE.RepeatWrapping;
-            // Anisotropic filtering for better quality on angled surfaces
+            texture.wrapS = THREE.RepeatWrapping; 
+            texture.wrapT = THREE.ClampToEdgeWrapping; 
             texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
             texture.needsUpdate = true;
+            
             return texture;
         }
 
         // --- Create Loader Globes ---
-        function createTextSphere(text, fontSize, canvasHeight) {
+        function createTextSphere(text, heightScale) {
             const group = new THREE.Group(); 
 
-            const textTexture = createTextTexture(text, fontSize, canvasHeight);
-            // The material is now transparent where there's no text
+            const textTexture = createTextTexture(text, heightScale);
+            
             const textMaterial = new THREE.MeshBasicMaterial({
                 map: textTexture,
                 transparent: true,
-                side: THREE.DoubleSide, // Render both sides to prevent text from disappearing
-                depthWrite: false // Crucial for correct transparency sorting
+                side: THREE.DoubleSide,
+                depthWrite: false 
             });
             const textSphere = new THREE.Mesh(new THREE.SphereGeometry(1.5, 64, 64), textMaterial);
             group.add(textSphere);
 
-            group.userData.textTexture = textTexture; // For animation
+            group.userData.textTexture = textTexture;
 
             return group;
         }
 
-        const globe1 = createTextSphere('CREATIVE DESIGNER', 90);
-        const globe2 = createTextSphere('UX/UI & WEB - UX/UI & WEB', 40, 256);
-
+        // --- YAZI BOYUTLARINI BURADAN AYARLIYORSUN ---
+        const globe1 = createTextSphere('AI-POWERED   ROTTEN   DETECTION   SYSTEM  ', 2); 
+        
+        const globe2 = createTextSphere('IMAGE UPLOAD     ---     OBJECT DETECTION     ---     BOUNDING BOX     ---     QUALITY CLASSIFICATION     ---    ', 1);
         scene.add(globe1, globe2);
 
         // --- Camera Orbit Logic ---
@@ -118,17 +138,16 @@
         const target = { x: 0, y: 0 };
         window.addEventListener('mousemove', (e) => {
             mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
-            mouse.y = -(e.clientY / window.innerHeight) * 2 + 1; // Invert Y
+            mouse.y = -(e.clientY / window.innerHeight) * 2 + 1; 
         });
 
         // --- Animation Loop ---
-        const clock = new THREE.Clock();
         function animate() {
             requestAnimationFrame(animate);
 
-            // Animate texture offset for scrolling text
-            globe1.userData.textTexture.offset.x -= 0.001;
-            globe2.userData.textTexture.offset.x -= 0.002; // Same direction, but faster
+            // Dönüş hızı
+            globe1.userData.textTexture.offset.x -= 0.0005;
+            globe2.userData.textTexture.offset.x -= 0.001; 
 
             // Camera orbit calculation
             target.x += (mouse.y * 0.4 - target.x) * 0.05;
@@ -136,7 +155,7 @@
 
             const r = 6;
             const phi = Math.PI / 2 - target.x;
-            const theta = target.y; // Removed PI offset for more direct control
+            const theta = target.y;
 
             camera.position.x = r * Math.sin(phi) * Math.cos(theta);
             camera.position.y = r * Math.cos(phi);
@@ -148,18 +167,17 @@
         animate();
 
         // --- GSAP Animations ---
-        // 1. Intro Animation
         globe1.position.y = -8;
         globe2.position.y = -8;
         const introTl = gsap.timeline({ delay: 1 });
-        // Increased vertical separation
-        introTl.to(globe1.position, { y: 0.25, duration: 2.5, ease: 'power4.out' });
-        introTl.to(globe2.position, { y: -0.25, duration: 2.5, ease: 'power4.out' }, '-=2.2');
+        
+        introTl.to(globe1.position, { y: 0.35, duration: 2.5, ease: 'power4.out' });
+        introTl.to(globe2.position, { y: -0.15, duration: 2.5, ease: 'power4.out' }, '-=2.2');
 
-        // 2. Exit Animation (triggered by a simulated load)
+        // Exit Animation
         setTimeout(() => {
             runExitAnimation();
-        }, 5000); // Simulate a 5-second load time
+        }, 5000); 
 
         function runExitAnimation() {
             const exitTl = gsap.timeline();
