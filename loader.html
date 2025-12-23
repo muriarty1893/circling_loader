@@ -11,7 +11,7 @@
         body {
             margin: 0;
             overflow: hidden;
-            background-color: #fff;
+            background-color: #111;
         }
         #loader {
             position: fixed;
@@ -19,7 +19,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background-color: #fff;
+            background-color: #111;
             z-index: 9999;
         }
         #loader-canvas {
@@ -29,7 +29,7 @@
         }
         #main-content {
             display: none;
-            color: black;
+            color: white;
             text-align: center;
             padding-top: 50vh;
         }
@@ -53,44 +53,52 @@
         renderer.setSize(window.innerWidth, window.innerHeight);
 
         // --- Lights ---
-        const ambientLight = new THREE.AmbientLight(0x000000, 1); // Ambient light for black text
+        const ambientLight = new THREE.AmbientLight(0xffffff, 1);
         scene.add(ambientLight);
 
         // --- Textures and Materials ---
-        function createTextTexture(text, fontSize) {
+        function createTextTexture(text, fontSize, canvasHeight = 1024) {
             const canvas = document.createElement('canvas');
             const context = canvas.getContext('2d');
-            canvas.width = 4096; // Increased resolution for crispness
-            canvas.height = 512;
+            // Use a very high resolution canvas for crisp text
+            canvas.width = 8192;
+            canvas.height = canvasHeight; // Use parameterized height
 
             // Transparent background
             context.clearRect(0, 0, canvas.width, canvas.height);
             
-            context.font = `900 ${fontSize}px 'Inter', sans-serif`;
-            context.fillStyle = 'black';
+            // Adjust font size based on the new dynamic canvas height
+            const adjustedFontSize = fontSize * (canvas.height / 512);
+            context.font = `900 ${adjustedFontSize}px 'Inter', sans-serif`;
+            context.fillStyle = 'white';
             context.textAlign = 'center';
             context.textBaseline = 'middle';
             
-            // Repeat text to fill texture
-            const fullText = (text + '         ').repeat(12);
+            // Repeat text to fill the wider texture
+            const textMetrics = context.measureText(text + ' ');
+            const repeatCount = Math.ceil(canvas.width / textMetrics.width) * 2; // More repetitions
+            const fullText = (text + '         ').repeat(repeatCount);
             context.fillText(fullText, canvas.width / 2, canvas.height / 2);
             
             const texture = new THREE.CanvasTexture(canvas);
             texture.wrapS = THREE.RepeatWrapping;
+            // Anisotropic filtering for better quality on angled surfaces
+            texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
             texture.needsUpdate = true;
             return texture;
         }
 
         // --- Create Loader Globes ---
-        function createTextSphere(text, fontSize) {
+        function createTextSphere(text, fontSize, canvasHeight) {
             const group = new THREE.Group(); 
 
-            const textTexture = createTextTexture(text, fontSize);
+            const textTexture = createTextTexture(text, fontSize, canvasHeight);
             // The material is now transparent where there's no text
             const textMaterial = new THREE.MeshBasicMaterial({
                 map: textTexture,
                 transparent: true,
-                side: THREE.DoubleSide // Render both sides to prevent text from disappearing
+                side: THREE.DoubleSide, // Render both sides to prevent text from disappearing
+                depthWrite: false // Crucial for correct transparency sorting
             });
             const textSphere = new THREE.Mesh(new THREE.SphereGeometry(1.5, 64, 64), textMaterial);
             group.add(textSphere);
@@ -101,7 +109,7 @@
         }
 
         const globe1 = createTextSphere('CREATIVE DESIGNER', 90);
-        const globe2 = createTextSphere('UX/UI & WEB', 80);
+        const globe2 = createTextSphere('UX/UI & WEB - UX/UI & WEB', 40, 256);
 
         scene.add(globe1, globe2);
 
@@ -120,7 +128,7 @@
 
             // Animate texture offset for scrolling text
             globe1.userData.textTexture.offset.x -= 0.001;
-            globe2.userData.textTexture.offset.x += 0.001;
+            globe2.userData.textTexture.offset.x -= 0.002; // Same direction, but faster
 
             // Camera orbit calculation
             target.x += (mouse.y * 0.4 - target.x) * 0.05;
@@ -145,8 +153,8 @@
         globe2.position.y = -8;
         const introTl = gsap.timeline({ delay: 1 });
         // Increased vertical separation
-        introTl.to(globe1.position, { y: 0.7, duration: 2.5, ease: 'power4.out' });
-        introTl.to(globe2.position, { y: -0.7, duration: 2.5, ease: 'power4.out' }, '-=2.2');
+        introTl.to(globe1.position, { y: 0.25, duration: 2.5, ease: 'power4.out' });
+        introTl.to(globe2.position, { y: -0.25, duration: 2.5, ease: 'power4.out' }, '-=2.2');
 
         // 2. Exit Animation (triggered by a simulated load)
         setTimeout(() => {
