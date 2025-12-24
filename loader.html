@@ -33,11 +33,22 @@
             text-align: center;
             padding-top: 50vh;
         }
+        #percentage-counter {
+            position: absolute;
+            top: 65%; /* Position below the center */
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: black;
+            font-family: 'Inter', sans-serif;
+            font-size: 20px;
+            font-weight: 400;
+        }
     </style>
 </head>
 <body>
     <div id="loader">
         <canvas id="loader-canvas"></canvas>
+        <div id="percentage-counter">0%</div>
     </div>
     <div id="main-content">
         <h1>Content Loaded!</h1>
@@ -174,12 +185,23 @@
         globe1.position.set(1.5, -15, 0); // Start from right
         globe2.position.set(-1.5, -15, 0); // Start from left
 
-        const introTl = gsap.timeline({ delay: 1 });
+        const introTl = gsap.timeline({ delay: 0.2 });
 
         // globe1 starts first
         introTl.to(globe1.position, { x: 0, y: 0.35, duration: 2.5, ease: 'power4.out' });
         // globe2 starts 0.5s later, is faster, and comes from the other side
         introTl.to(globe2.position, { x: 0, y: -0.15, duration: 1.8, ease: 'power4.out' }, '-=2.0'); // Starts 0.5s after globe1
+
+        const counter = { value: 0 };
+        const percentageDiv = document.getElementById('percentage-counter');
+        gsap.to(counter, {
+            value: 100,
+            duration: 5,
+            ease: 'none',
+            onUpdate: () => {
+                percentageDiv.textContent = `${Math.round(counter.value)}%`;
+            }
+        });
 
         // Exit Animation
         setTimeout(() => {
@@ -188,20 +210,25 @@
 
         function runExitAnimation() {
             const exitTl = gsap.timeline();
-            // globe2 (bottom) exits first and faster, downwards and to the left
+            
+            // Fade the counter out right away
+            exitTl.to('#percentage-counter', { opacity: 0, duration: 0.3 }, 0);
+
+            // globe2 (bottom) starts descending at t=0 and is fast.
             exitTl.to(globe2.position, {
                 x: -1.5,
                 y: -15,
                 duration: 1.0,
                 ease: 'power4.in'
-            });
-            // globe1 (top) exits second and slower, downwards and to the right
+            }, 0);
+
+            // globe1 (top) starts descending at t=0.05 and is slower.
             exitTl.to(globe1.position, {
                 x: 1.5,
                 y: -15,
-                duration: 1.5,
+                duration: 1.3,
                 ease: 'power4.in'
-            }, 0.2); // Delay start by 0.2s
+            }, 0.05);
 
             exitTl.to('#loader', { 
                 opacity: 0, 
