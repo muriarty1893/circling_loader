@@ -6,7 +6,7 @@
     <title>3D Loader White Theme</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;900&display=swap" rel="stylesheet">
     <style>
         body {
             margin: 0;
@@ -58,7 +58,7 @@
 
         // --- Textures and Materials ---
         
-        function createTextTexture(text, heightScale = 1.0) {
+        function createTextTexture(text, heightScale = 1.0, fontWeight = 900) {
             const canvas = document.createElement('canvas');
             const context = canvas.getContext('2d');
             
@@ -72,7 +72,7 @@
 
             // 2. Referans ölçüm
             let fontSize = 100;
-            context.font = `900 ${fontSize}px 'Inter', sans-serif`;
+            context.font = `${fontWeight} ${fontSize}px 'Inter', sans-serif`;
             const metrics = context.measureText(textToRender);
             const textWidth = metrics.width;
             
@@ -81,7 +81,7 @@
             const finalFontSize = fontSize * scaleFactor;
             
             // 4. Çizim Ayarları
-            context.font = `900 ${finalFontSize}px 'Inter', sans-serif`;
+            context.font = `${fontWeight} ${finalFontSize}px 'Inter', sans-serif`;
             
             // --- RENK DEĞİŞİKLİĞİ BURADA YAPILDI ---
             context.fillStyle = 'black'; // Yazı rengi Siyah yapıldı (Eskiden white idi)
@@ -108,10 +108,10 @@
         }
 
         // --- Create Loader Globes ---
-        function createTextSphere(text, heightScale) {
+        function createTextSphere(text, heightScale, fontWeight) {
             const group = new THREE.Group(); 
 
-            const textTexture = createTextTexture(text, heightScale);
+            const textTexture = createTextTexture(text, heightScale, fontWeight);
             
             const textMaterial = new THREE.MeshBasicMaterial({
                 map: textTexture,
@@ -128,10 +128,13 @@
         }
 
         // --- YAZI BOYUTLARINI BURADAN AYARLIYORSUN ---
-        const globe1 = createTextSphere('AI-POWERED   ROTTEN   DETECTION   SYSTEM  ', 2); 
-        
-        const globe2 = createTextSphere('IMAGE UPLOAD     ---     OBJECT DETECTION     ---     BOUNDING BOX     ---     QUALITY CLASSIFICATION     ---    ', 1);
-        scene.add(globe1, globe2);
+        const masterGroup = new THREE.Group();
+        masterGroup.rotation.x = Math.PI / 12; // 15 degrees
+        scene.add(masterGroup);
+
+        const globe1 = createTextSphere('AI-POWERED   ROTTEN   DETECTION   SYSTEM  ', 2, 900); 
+        const globe2 = createTextSphere('IMAGE UPLOAD      »      OBJECT DETECTION      »      BOUNDING BOX      »      QUALITY CLASSIFICATION      »     ', 1, 400);
+        masterGroup.add(globe1, globe2);
 
         // --- Camera Orbit Logic ---
         const mouse = { x: 0, y: 0 };
@@ -154,7 +157,7 @@
             target.y += (mouse.x * 0.4 - target.y) * 0.05;
 
             const r = 6;
-            const phi = Math.PI / 2 - target.x;
+            const phi = Math.PI / 2 - target.x - 0.2; // Camera vertical offset
             const theta = target.y;
 
             camera.position.x = r * Math.sin(phi) * Math.cos(theta);
@@ -167,12 +170,16 @@
         animate();
 
         // --- GSAP Animations ---
-        globe1.position.y = -8;
-        globe2.position.y = -8;
+        // Both start from bottom, different x positions to avoid collision.
+        globe1.position.set(1.5, -15, 0); // Start from right
+        globe2.position.set(-1.5, -15, 0); // Start from left
+
         const introTl = gsap.timeline({ delay: 1 });
-        
-        introTl.to(globe1.position, { y: 0.35, duration: 2.5, ease: 'power4.out' });
-        introTl.to(globe2.position, { y: -0.15, duration: 2.5, ease: 'power4.out' }, '-=2.2');
+
+        // globe1 starts first
+        introTl.to(globe1.position, { x: 0, y: 0.35, duration: 2.5, ease: 'power4.out' });
+        // globe2 starts 0.5s later, is faster, and comes from the other side
+        introTl.to(globe2.position, { x: 0, y: -0.15, duration: 1.8, ease: 'power4.out' }, '-=2.0'); // Starts 0.5s after globe1
 
         // Exit Animation
         setTimeout(() => {
@@ -181,19 +188,28 @@
 
         function runExitAnimation() {
             const exitTl = gsap.timeline();
-            exitTl.to([globe1.position, globe2.position], { 
-                y: -10, 
-                duration: 1.5, 
-                ease: 'power4.in',
-                stagger: 0.1
+            // globe2 (bottom) exits first and faster, downwards and to the left
+            exitTl.to(globe2.position, {
+                x: -1.5,
+                y: -15,
+                duration: 1.0,
+                ease: 'power4.in'
             });
+            // globe1 (top) exits second and slower, downwards and to the right
+            exitTl.to(globe1.position, {
+                x: 1.5,
+                y: -15,
+                duration: 1.5,
+                ease: 'power4.in'
+            }, 0.2); // Delay start by 0.2s
+
             exitTl.to('#loader', { 
                 opacity: 0, 
                 duration: 1, 
                 onComplete: () => {
                     document.getElementById('loader').style.display = 'none';
                 }
-            }, '-=0.8');
+            }, 0.8); // Start fade at 0.8s
             exitTl.fromTo('#main-content', { opacity: 0 }, { opacity: 1, display: 'block', duration: 1}, '-=0.5');
         }
         
