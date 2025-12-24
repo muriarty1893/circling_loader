@@ -129,7 +129,7 @@
 
         // --- YAZI BOYUTLARINI BURADAN AYARLIYORSUN ---
         const masterGroup = new THREE.Group();
-        masterGroup.rotation.x = Math.PI / 12; // 15 degrees
+        masterGroup.rotation.x = Math.PI / 24; // 7.5 degrees
         scene.add(masterGroup);
 
         const globe1 = createTextSphere('AI-POWERED   ROTTEN   DETECTION   SYSTEM  ', 2, 900); 
@@ -149,8 +149,8 @@
             requestAnimationFrame(animate);
 
             // Dönüş hızı
-            globe1.userData.textTexture.offset.x -= 0.0005;
-            globe2.userData.textTexture.offset.x -= 0.001; 
+            globe1.userData.textTexture.offset.x += 0.0005;
+            globe2.userData.textTexture.offset.x += 0.001; 
 
             // Camera orbit calculation
             target.x += (mouse.y * 0.4 - target.x) * 0.05;
